@@ -77,6 +77,8 @@ export default function SettingsView({ onDone }: Props) {
       </div>
 
       {saved && <p className="confirmation">Сохранено</p>}
+
+      <p className="build-stamp">Версия сборки: {__BUILD_STAMP__}</p>
     </div>
   )
 }

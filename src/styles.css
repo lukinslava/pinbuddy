@@ -227,3 +227,10 @@ button:disabled {
   color: var(--accent, #aa3bff);
   text-decoration: none;
 }
+
+.build-stamp {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  opacity: 0.5;
+  text-align: center;
+}
