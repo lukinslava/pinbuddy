@@ -1,0 +1,225 @@
+/* Mobile-first layout for PinBuddy. index.css (Vite template) supplies base
+   color variables and typography; this file adds app-specific structure. */
+
+* {
+  box-sizing: border-box;
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border, #e5e4e7);
+  position: sticky;
+  top: 0;
+  background: var(--bg, #fff);
+  z-index: 1;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.app-header nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.app-header nav button {
+  background: none;
+  border: 1px solid var(--border, #e5e4e7);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.app-header nav button.nav-active {
+  border-color: var(--accent, #aa3bff);
+  color: var(--accent, #aa3bff);
+}
+
+main {
+  padding: 1rem;
+}
+
+.no-key-banner {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--accent-bg, rgba(170, 59, 255, 0.1));
+  border: 1px solid var(--accent-border, rgba(170, 59, 255, 0.5));
+  border-radius: 8px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.field span {
+  font-size: 0.85rem;
+  color: var(--text, #6b6375);
+}
+
+.field input,
+.field textarea,
+.field select {
+  padding: 0.5rem;
+  border: 1px solid var(--border, #e5e4e7);
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  font: inherit;
+}
+
+.settings-actions button,
+.gallery-controls button,
+.caption-card-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #aa3bff);
+  background: var(--accent, #aa3bff);
+  color: #fff;
+  cursor: pointer;
+}
+
+.settings-actions button.secondary {
+  background: none;
+  color: var(--accent, #aa3bff);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmation {
+  color: green;
+  font-size: 0.9rem;
+}
+
+.gallery-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.file-picker {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--border, #e5e4e7);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.file-picker input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.empty-state {
+  color: var(--text, #6b6375);
+}
+
+.caption-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.caption-card {
+  border: 1px solid var(--border, #e5e4e7);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 560px) {
+  .caption-card {
+    flex-direction: row;
+  }
+  .caption-card-media {
+    flex: 0 0 160px;
+  }
+  .caption-card-body {
+    flex: 1;
+  }
+}
+
+.caption-card-media img,
+.caption-card-media video {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+  object-fit: cover;
+}
+
+.status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-failed {
+  color: #c0392b;
+}
+
+.status-done {
+  color: green;
+}
+
+.caption-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.share-fallback {
+  border: 1px dashed var(--border, #e5e4e7);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.button-link {
+  display: inline-block;
+  text-align: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #aa3bff);
+  color: var(--accent, #aa3bff);
+  text-decoration: none;
+}
