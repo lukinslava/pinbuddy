@@ -49,8 +49,17 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate }: Props)
     }, 2500)
   }
 
+  // Video never goes through navigator.share(): on iOS, sharing a video to
+  // Pinterest reliably leaves the native share sheet stuck/unresponsive after
+  // returning from Pinterest (confirmed reproducible, not fixable from JS —
+  // repainting on visibility-change didn't clear it either). Photos share
+  // fine, so only video is routed straight to the manual fallback.
   async function handlePublish() {
     if (!item.caption) return
+    if (item.type === 'video') {
+      setShareResult('unsupported')
+      return
+    }
     setPublishing(true)
     setShareResult(null)
     try {
@@ -102,9 +111,9 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate }: Props)
         </div>
 
         <p className="hint">
-          Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в
-          единственное текстовое поле в Pinterest. Не возвращайтесь в PinBuddy,
-          пока не закроете Pinterest — иначе окно «Поделиться» может зависнуть.
+          {item.type === 'video'
+            ? 'Сначала «Копировать текст», потом «Опубликовать» — приложение покажет, как создать пин вручную в Pinterest.'
+            : 'Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в единственное текстовое поле в Pinterest. Не возвращайтесь в PinBuddy, пока не закроете Pinterest — иначе окно «Поделиться» может зависнуть.'}
         </p>
 
         {shareResult === 'shared' && <p className="confirmation">Отправлено в приложение для публикации</p>}
