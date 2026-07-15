@@ -1,11 +1,10 @@
 import { useState, type ChangeEvent } from 'react'
-import type { GeneratedCaption, MediaItem } from '../types'
+import type { MediaItem } from '../types'
 import { getApiKey } from '../lib/keyStore'
 import { getSettings } from '../lib/settings'
 import { FetchClaudeClient } from '../lib/claudeClient'
 import { generateCaption } from '../lib/captionGenerator'
 import { framesFromFile } from '../lib/frameExtractor'
-import { clampTitle, clampDescription, normalizeTags } from '../lib/captionRules'
 import CaptionCard from './CaptionCard'
 
 function mediaItemFromFile(file: File): MediaItem {
@@ -32,12 +31,6 @@ export default function GalleryView() {
 
   function updateItem(id: string, patch: Partial<MediaItem>) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
-  }
-
-  function updateCaption(id: string, patch: Partial<GeneratedCaption>) {
-    setItems((prev) =>
-      prev.map((it) => (it.id === id && it.caption ? { ...it, caption: { ...it.caption, ...patch } } : it)),
-    )
   }
 
   async function generateOne(item: MediaItem) {
@@ -95,15 +88,7 @@ export default function GalleryView() {
 
       <ul className="caption-card-list">
         {items.map((item) => (
-          <CaptionCard
-            key={item.id}
-            item={item}
-            bulkGenerating={generatingAll}
-            onGenerate={generateOneById}
-            onEditTitle={(id, title) => updateCaption(id, { title: clampTitle(title) })}
-            onEditDescription={(id, description) => updateCaption(id, { description: clampDescription(description) })}
-            onEditTags={(id, tags) => updateCaption(id, { tags: normalizeTags(tags) })}
-          />
+          <CaptionCard key={item.id} item={item} bulkGenerating={generatingAll} onGenerate={generateOneById} />
         ))}
       </ul>
     </div>

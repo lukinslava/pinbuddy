@@ -1,44 +1,27 @@
 import { useEffect, useState } from 'react'
 import type { MediaItem } from '../types'
-import { TITLE_MAX, DESC_MAX } from '../lib/captionRules'
-import { shareToPinterest, captionText } from '../lib/shareService'
+import { captionText, shareToPinterest } from '../lib/shareService'
 import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
   item: MediaItem
   bulkGenerating: boolean
   onGenerate: (id: string) => void
-  onEditTitle: (id: string, title: string) => void
-  onEditDescription: (id: string, description: string) => void
-  onEditTags: (id: string, tags: string[]) => void
 }
 
-// Tags are entered as a single text field; both spaces and commas separate tags,
-// so "путешествия, лето отпуск" and "путешествия лето, отпуск" behave the same.
-function parseTagsInput(raw: string): string[] {
-  return raw
-    .split(/[\s,]+/)
-    .map((t) => t.trim())
-    .filter(Boolean)
-}
-
-export default function CaptionCard({
-  item,
-  bulkGenerating,
-  onGenerate,
-  onEditTitle,
-  onEditDescription,
-  onEditTags,
-}: Props) {
-  const [tagsText, setTagsText] = useState(item.caption?.tags.join(' ') ?? '')
+export default function CaptionCard({ item, bulkGenerating, onGenerate }: Props) {
+  // Pinterest has a single combined text field (no separate title/description/tags
+  // fields in practice), so editing here is one block too — initialized from the
+  // generated caption, freely editable, and that's exactly what gets copied.
+  const [text, setText] = useState(item.caption ? captionText(item.caption) : '')
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
 
   useEffect(() => {
-    setTagsText(item.caption?.tags.join(' ') ?? '')
-  }, [item.caption?.tags])
+    if (item.caption) setText(captionText(item.caption))
+  }, [item.caption])
 
   const isGenerating = item.status.kind === 'generating'
   const generateDisabled = isGenerating || bulkGenerating
@@ -47,16 +30,14 @@ export default function CaptionCard({
   // A direct tap is a clean user gesture, so the clipboard write is reliable on
   // iOS (unlike copying during the share flow, which iOS often drops).
   //
-  // Only one combined copy, done BEFORE "Опубликовать": once the OS share sheet
-  // hands off to Pinterest, switching back to PinBuddy to grab a second piece of
-  // text leaves iOS's share sheet stuck in an unclosable state. Copying
-  // everything up front means the whole visit to Pinterest needs zero return
-  // trips — paste the one block into Description; Title is optional in
-  // Pinterest and can be left blank or typed by hand.
+  // Copy happens BEFORE "Опубликовать": once the OS share sheet hands off to
+  // Pinterest, switching back to PinBuddy leaves iOS's share sheet stuck in an
+  // unclosable state. Copying up front means the whole visit to Pinterest
+  // needs zero return trips — paste the one block into Pinterest's single text
+  // field.
   async function handleCopy() {
-    if (!item.caption) return
     try {
-      await navigator.clipboard.writeText(captionText(item.caption))
+      await navigator.clipboard.writeText(text)
       setCopyFailed(false)
     } catch {
       setCopyFailed(true)
@@ -73,7 +54,7 @@ export default function CaptionCard({
     setPublishing(true)
     setShareResult(null)
     try {
-      const result = await shareToPinterest(item.caption, item.file)
+      const result = await shareToPinterest(text, item.file)
       setShareResult(result)
     } finally {
       setPublishing(false)
@@ -99,37 +80,12 @@ export default function CaptionCard({
         </p>
 
         <label className="field">
-          <span>
-            Заголовок ({[...(item.caption?.title ?? '')].length}/{TITLE_MAX})
-          </span>
-          <input
-            type="text"
-            value={item.caption?.title ?? ''}
-            onChange={(e) => onEditTitle(item.id, e.target.value)}
-            disabled={!item.caption || isGenerating}
-          />
-        </label>
-
-        <label className="field">
-          <span>
-            Описание ({[...(item.caption?.description ?? '')].length}/{DESC_MAX})
-          </span>
+          <span>Текст для Pinterest ({[...text].length} символов)</span>
           <textarea
-            value={item.caption?.description ?? ''}
-            onChange={(e) => onEditDescription(item.id, e.target.value)}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             disabled={!item.caption || isGenerating}
-            rows={3}
-          />
-        </label>
-
-        <label className="field">
-          <span>Теги (через пробел или запятую)</span>
-          <input
-            type="text"
-            value={tagsText}
-            onChange={(e) => setTagsText(e.target.value)}
-            onBlur={() => onEditTags(item.id, parseTagsInput(tagsText))}
-            disabled={!item.caption || isGenerating}
+            rows={5}
           />
         </label>
 
@@ -146,9 +102,9 @@ export default function CaptionCard({
         </div>
 
         <p className="hint">
-          Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в поле
-          «Описание» в Pinterest. Не возвращайтесь в PinBuddy, пока не закроете
-          Pinterest — иначе окно «Поделиться» может зависнуть.
+          Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в
+          единственное текстовое поле в Pinterest. Не возвращайтесь в PinBuddy,
+          пока не закроете Pinterest — иначе окно «Поделиться» может зависнуть.
         </p>
 
         {shareResult === 'shared' && <p className="confirmation">Отправлено в приложение для публикации</p>}

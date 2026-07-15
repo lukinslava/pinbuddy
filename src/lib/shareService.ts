@@ -4,9 +4,8 @@ export function captionText(c: GeneratedCaption): string {
   return [c.title, c.description, c.tags.join(' ')].filter(Boolean).join('\n\n')
 }
 
-/** Copies caption to clipboard and opens the OS share sheet with the media file. */
-export async function shareToPinterest(caption: GeneratedCaption, file: File): Promise<'shared'|'copied'|'unsupported'> {
-  const text = captionText(caption)
+/** Copies the given text to clipboard and opens the OS share sheet with the media file. */
+export async function shareToPinterest(text: string, file: File): Promise<'shared'|'copied'|'unsupported'> {
   try { await navigator.clipboard.writeText(text) } catch { /* non-fatal */ }
 
   const canFiles = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
