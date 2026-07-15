@@ -6,6 +6,7 @@ import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
   item: MediaItem
+  bulkGenerating: boolean
   onGenerate: (id: string) => void
   onEditTitle: (id: string, title: string) => void
   onEditDescription: (id: string, description: string) => void
@@ -21,7 +22,14 @@ function parseTagsInput(raw: string): string[] {
     .filter(Boolean)
 }
 
-export default function CaptionCard({ item, onGenerate, onEditTitle, onEditDescription, onEditTags }: Props) {
+export default function CaptionCard({
+  item,
+  bulkGenerating,
+  onGenerate,
+  onEditTitle,
+  onEditDescription,
+  onEditTags,
+}: Props) {
   const [tagsText, setTagsText] = useState(item.caption?.tags.join(' ') ?? '')
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
@@ -31,6 +39,7 @@ export default function CaptionCard({ item, onGenerate, onEditTitle, onEditDescr
   }, [item.caption?.tags])
 
   const isGenerating = item.status.kind === 'generating'
+  const generateDisabled = isGenerating || bulkGenerating
   const generateLabel = item.status.kind === 'idle' ? 'Сгенерировать' : 'Повторить'
 
   async function handlePublish() {
@@ -71,7 +80,7 @@ export default function CaptionCard({ item, onGenerate, onEditTitle, onEditDescr
             type="text"
             value={item.caption?.title ?? ''}
             onChange={(e) => onEditTitle(item.id, e.target.value)}
-            disabled={!item.caption}
+            disabled={!item.caption || isGenerating}
           />
         </label>
 
@@ -82,7 +91,7 @@ export default function CaptionCard({ item, onGenerate, onEditTitle, onEditDescr
           <textarea
             value={item.caption?.description ?? ''}
             onChange={(e) => onEditDescription(item.id, e.target.value)}
-            disabled={!item.caption}
+            disabled={!item.caption || isGenerating}
             rows={3}
           />
         </label>
@@ -94,15 +103,15 @@ export default function CaptionCard({ item, onGenerate, onEditTitle, onEditDescr
             value={tagsText}
             onChange={(e) => setTagsText(e.target.value)}
             onBlur={() => onEditTags(item.id, parseTagsInput(tagsText))}
-            disabled={!item.caption}
+            disabled={!item.caption || isGenerating}
           />
         </label>
 
         <div className="caption-card-actions">
-          <button type="button" onClick={() => onGenerate(item.id)} disabled={isGenerating}>
+          <button type="button" onClick={() => onGenerate(item.id)} disabled={generateDisabled}>
             {isGenerating ? 'Генерация...' : generateLabel}
           </button>
-          <button type="button" onClick={handlePublish} disabled={!item.caption || publishing}>
+          <button type="button" onClick={handlePublish} disabled={!item.caption || publishing || isGenerating}>
             {publishing ? 'Публикация...' : 'Опубликовать'}
           </button>
         </div>

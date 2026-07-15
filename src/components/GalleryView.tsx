@@ -98,6 +98,7 @@ export default function GalleryView() {
           <CaptionCard
             key={item.id}
             item={item}
+            bulkGenerating={generatingAll}
             onGenerate={generateOneById}
             onEditTitle={(id, title) => updateCaption(id, { title: clampTitle(title) })}
             onEditDescription={(id, description) => updateCaption(id, { description: clampDescription(description) })}
