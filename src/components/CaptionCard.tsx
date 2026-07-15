@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MediaItem } from '../types'
 import { TITLE_MAX, DESC_MAX } from '../lib/captionRules'
-import { shareToPinterest } from '../lib/shareService'
+import { shareToPinterest, captionText } from '../lib/shareService'
 import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
@@ -33,6 +33,7 @@ export default function CaptionCard({
   const [tagsText, setTagsText] = useState(item.caption?.tags.join(' ') ?? '')
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
 
   useEffect(() => {
     setTagsText(item.caption?.tags.join(' ') ?? '')
@@ -41,6 +42,19 @@ export default function CaptionCard({
   const isGenerating = item.status.kind === 'generating'
   const generateDisabled = isGenerating || bulkGenerating
   const generateLabel = item.status.kind === 'idle' ? 'Сгенерировать' : 'Повторить'
+
+  // A direct tap is a clean user gesture, so the clipboard write is reliable on
+  // iOS (unlike copying during the share flow, which iOS often drops).
+  async function handleCopy() {
+    if (!item.caption) return
+    try {
+      await navigator.clipboard.writeText(captionText(item.caption))
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    }
+    setTimeout(() => setCopyState('idle'), 2500)
+  }
 
   async function handlePublish() {
     if (!item.caption) return
@@ -110,6 +124,9 @@ export default function CaptionCard({
         <div className="caption-card-actions">
           <button type="button" onClick={() => onGenerate(item.id)} disabled={generateDisabled}>
             {isGenerating ? 'Генерация...' : generateLabel}
+          </button>
+          <button type="button" onClick={handleCopy} disabled={!item.caption || isGenerating}>
+            {copyState === 'copied' ? 'Скопировано ✓' : copyState === 'failed' ? 'Не вышло' : 'Копировать описание'}
           </button>
           <button type="button" onClick={handlePublish} disabled={!item.caption || publishing || isGenerating}>
             {publishing ? 'Публикация...' : 'Опубликовать'}
