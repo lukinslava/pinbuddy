@@ -52,6 +52,12 @@
   color: var(--accent, #aa3bff);
 }
 
+.reload-button {
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.4rem 0.6rem !important;
+}
+
 main {
   padding: 1rem;
 }
