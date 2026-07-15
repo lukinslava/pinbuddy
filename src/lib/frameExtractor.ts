@@ -13,7 +13,11 @@ export async function framesFromVideo(file: File, maxFrames = 3): Promise<string
   const stops = [0, dur / 2, Math.max(0, dur - 0.2)].slice(0, maxFrames)
   const out: string[] = []
   for (const t of stops) {
-    await new Promise<void>((res) => { video.onseeked = () => res(); video.currentTime = t })
+    await new Promise<void>((res) => {
+      const timeout = setTimeout(() => res(), 1000)
+      video.onseeked = () => { clearTimeout(timeout); res() }
+      video.currentTime = t
+    })
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth; canvas.height = video.videoHeight
     canvas.getContext('2d')!.drawImage(video, 0, 0)
