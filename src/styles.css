@@ -17,7 +17,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  /* Add the iOS safe-area inset (notch / status bar) plus comfortable padding so
+     the nav buttons never sit under the system bar in the installed PWA. */
+  padding: calc(env(safe-area-inset-top, 0px) + 1.25rem) 1rem 0.75rem;
   border-bottom: 1px solid var(--border, #e5e4e7);
   position: sticky;
   top: 0;
