@@ -11,7 +11,12 @@ export async function shareToPinterest(caption: GeneratedCaption, file: File): P
 
   const canFiles = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
   if (navigator.share && canFiles) {
-    try { await navigator.share({ files: [file], text }); return 'shared' }
+    // Pinterest reads a video "files + text" share as text-only ("sharing text
+    // on its own isn't possible"), so send the file alone for video. Photos
+    // accept the accompanying text fine. Caption is on the clipboard either way.
+    const isVideo = file.type.startsWith('video')
+    const payload = isVideo ? { files: [file] } : { files: [file], text }
+    try { await navigator.share(payload); return 'shared' }
     catch { return 'copied' } // user cancelled or share failed; text is on clipboard
   }
   return 'unsupported' // caller shows fallback (download + open Pinterest)
