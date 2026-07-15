@@ -126,6 +126,12 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.hint {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin: 0.5rem 0 0;
+}
+
 .gallery-controls {
   display: flex;
   flex-wrap: wrap;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MediaItem } from '../types'
 import { TITLE_MAX, DESC_MAX } from '../lib/captionRules'
-import { shareToPinterest } from '../lib/shareService'
+import { shareToPinterest, captionText } from '../lib/shareService'
 import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
@@ -33,7 +33,7 @@ export default function CaptionCard({
   const [tagsText, setTagsText] = useState(item.caption?.tags.join(' ') ?? '')
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
-  const [copied, setCopied] = useState<'title' | 'desc' | null>(null)
+  const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
 
   useEffect(() => {
@@ -45,19 +45,25 @@ export default function CaptionCard({
   const generateLabel = item.status.kind === 'idle' ? 'Сгенерировать' : 'Повторить'
 
   // A direct tap is a clean user gesture, so the clipboard write is reliable on
-  // iOS (unlike copying during the share flow, which iOS often drops). Title and
-  // description are copied separately to match Pinterest's two fields; tags go
-  // with the description (Pinterest has no separate tag field).
-  async function copyField(text: string, key: 'title' | 'desc') {
+  // iOS (unlike copying during the share flow, which iOS often drops).
+  //
+  // Only one combined copy, done BEFORE "Опубликовать": once the OS share sheet
+  // hands off to Pinterest, switching back to PinBuddy to grab a second piece of
+  // text leaves iOS's share sheet stuck in an unclosable state. Copying
+  // everything up front means the whole visit to Pinterest needs zero return
+  // trips — paste the one block into Description; Title is optional in
+  // Pinterest and can be left blank or typed by hand.
+  async function handleCopy() {
+    if (!item.caption) return
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(captionText(item.caption))
       setCopyFailed(false)
     } catch {
       setCopyFailed(true)
     }
-    setCopied(key)
+    setCopied(true)
     setTimeout(() => {
-      setCopied(null)
+      setCopied(false)
       setCopyFailed(false)
     }, 2500)
   }
@@ -131,29 +137,19 @@ export default function CaptionCard({
           <button type="button" onClick={() => onGenerate(item.id)} disabled={generateDisabled}>
             {isGenerating ? 'Генерация...' : generateLabel}
           </button>
-          <button
-            type="button"
-            onClick={() => copyField(item.caption!.title, 'title')}
-            disabled={!item.caption || isGenerating}
-          >
-            {copied === 'title' ? (copyFailed ? 'Не вышло' : 'Скопировано ✓') : 'Копировать заголовок'}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              copyField(
-                [item.caption!.description, item.caption!.tags.join(' ')].filter(Boolean).join('\n\n'),
-                'desc',
-              )
-            }
-            disabled={!item.caption || isGenerating}
-          >
-            {copied === 'desc' ? (copyFailed ? 'Не вышло' : 'Скопировано ✓') : 'Копировать описание'}
+          <button type="button" onClick={handleCopy} disabled={!item.caption || isGenerating}>
+            {copied ? (copyFailed ? 'Не вышло' : 'Скопировано ✓') : 'Копировать текст'}
           </button>
           <button type="button" onClick={handlePublish} disabled={!item.caption || publishing || isGenerating}>
             {publishing ? 'Публикация...' : 'Опубликовать'}
           </button>
         </div>
+
+        <p className="hint">
+          Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в поле
+          «Описание» в Pinterest. Не возвращайтесь в PinBuddy, пока не закроете
+          Pinterest — иначе окно «Поделиться» может зависнуть.
+        </p>
 
         {shareResult === 'shared' && <p className="confirmation">Отправлено в приложение для публикации</p>}
         {shareResult === 'copied' && <p className="confirmation">Текст скопирован в буфер обмена</p>}
