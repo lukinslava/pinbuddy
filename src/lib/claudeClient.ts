@@ -35,7 +35,16 @@ export class FetchClaudeClient implements ClaudeClient {
 
     if (resp.status === 401) throw new ClaudeError('unauthorized', 'Проверьте API-ключ')
     if (resp.status === 429) throw new ClaudeError('rate_limited', 'Слишком много запросов, попробуйте позже')
-    if (!resp.ok) throw new ClaudeError('http', `Ошибка API: ${resp.status}`)
+    if (!resp.ok) {
+      let detail = ''
+      try {
+        const err = await resp.json() as { error?: { message?: string } }
+        detail = err?.error?.message ?? ''
+      } catch {
+        /* body wasn't JSON — leave detail empty */
+      }
+      throw new ClaudeError('http', `Ошибка API ${resp.status}${detail ? `: ${detail}` : ''}`)
+    }
 
     const json = await resp.json() as { content?: { type: string; text?: string }[] }
     const text = json.content?.find(b => b.type === 'text')?.text
