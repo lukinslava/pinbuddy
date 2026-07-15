@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { FetchClaudeClient, ClaudeError } from '../claudeClient'
+import { FetchClaudeClient } from '../claudeClient'
 
 afterEach(() => vi.restoreAllMocks())
 
