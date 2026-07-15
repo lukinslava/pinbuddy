@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MediaItem } from '../types'
 import { TITLE_MAX, DESC_MAX } from '../lib/captionRules'
-import { shareToPinterest, captionText } from '../lib/shareService'
+import { shareToPinterest } from '../lib/shareService'
 import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
@@ -33,7 +33,8 @@ export default function CaptionCard({
   const [tagsText, setTagsText] = useState(item.caption?.tags.join(' ') ?? '')
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [copied, setCopied] = useState<'title' | 'desc' | null>(null)
+  const [copyFailed, setCopyFailed] = useState(false)
 
   useEffect(() => {
     setTagsText(item.caption?.tags.join(' ') ?? '')
@@ -44,16 +45,21 @@ export default function CaptionCard({
   const generateLabel = item.status.kind === 'idle' ? 'Сгенерировать' : 'Повторить'
 
   // A direct tap is a clean user gesture, so the clipboard write is reliable on
-  // iOS (unlike copying during the share flow, which iOS often drops).
-  async function handleCopy() {
-    if (!item.caption) return
+  // iOS (unlike copying during the share flow, which iOS often drops). Title and
+  // description are copied separately to match Pinterest's two fields; tags go
+  // with the description (Pinterest has no separate tag field).
+  async function copyField(text: string, key: 'title' | 'desc') {
     try {
-      await navigator.clipboard.writeText(captionText(item.caption))
-      setCopyState('copied')
+      await navigator.clipboard.writeText(text)
+      setCopyFailed(false)
     } catch {
-      setCopyState('failed')
+      setCopyFailed(true)
     }
-    setTimeout(() => setCopyState('idle'), 2500)
+    setCopied(key)
+    setTimeout(() => {
+      setCopied(null)
+      setCopyFailed(false)
+    }, 2500)
   }
 
   async function handlePublish() {
@@ -125,8 +131,24 @@ export default function CaptionCard({
           <button type="button" onClick={() => onGenerate(item.id)} disabled={generateDisabled}>
             {isGenerating ? 'Генерация...' : generateLabel}
           </button>
-          <button type="button" onClick={handleCopy} disabled={!item.caption || isGenerating}>
-            {copyState === 'copied' ? 'Скопировано ✓' : copyState === 'failed' ? 'Не вышло' : 'Копировать описание'}
+          <button
+            type="button"
+            onClick={() => copyField(item.caption!.title, 'title')}
+            disabled={!item.caption || isGenerating}
+          >
+            {copied === 'title' ? (copyFailed ? 'Не вышло' : 'Скопировано ✓') : 'Копировать заголовок'}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              copyField(
+                [item.caption!.description, item.caption!.tags.join(' ')].filter(Boolean).join('\n\n'),
+                'desc',
+              )
+            }
+            disabled={!item.caption || isGenerating}
+          >
+            {copied === 'desc' ? (copyFailed ? 'Не вышло' : 'Скопировано ✓') : 'Копировать описание'}
           </button>
           <button type="button" onClick={handlePublish} disabled={!item.caption || publishing || isGenerating}>
             {publishing ? 'Публикация...' : 'Опубликовать'}
