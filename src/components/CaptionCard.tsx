@@ -29,6 +29,7 @@ export default function CaptionCard({
   const [publishing, setPublishing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
+  const [fallbackCopied, setFallbackCopied] = useState(false)
 
   const isGenerating = item.status.kind === 'generating'
   const generateDisabled = isGenerating || bulkGenerating
@@ -60,10 +61,19 @@ export default function CaptionCard({
   // Pinterest reliably leaves the native share sheet stuck/unresponsive after
   // returning from Pinterest (confirmed reproducible, not fixable from JS —
   // repainting on visibility-change didn't clear it either). Photos share
-  // fine, so only video is routed straight to the manual fallback.
+  // fine, so only video is routed straight to the manual fallback. The tap is
+  // a clean user gesture, so copy here too — the instructions promise the text
+  // is on the clipboard, and that must hold even if "Копировать" was skipped.
   async function handlePublish() {
     if (!item.caption) return
     if (item.type === 'video') {
+      let ok = true
+      try {
+        await navigator.clipboard.writeText(text)
+      } catch {
+        ok = false
+      }
+      setFallbackCopied(ok)
       setShareResult('unsupported')
       return
     }
@@ -71,6 +81,7 @@ export default function CaptionCard({
     setShareResult(null)
     try {
       const result = await shareToPinterest(text, item.file)
+      setFallbackCopied(false) // shareToPinterest's own copy is unreliable on iOS
       setShareResult(result)
       // The user picked an app in the share sheet — most likely posted.
       if (result === 'shared') onPublishedChange(item.id, true)
@@ -128,13 +139,13 @@ export default function CaptionCard({
 
         <p className="hint">
           {item.type === 'video'
-            ? 'Сначала «Копировать текст», потом «Опубликовать» — приложение покажет, как создать пин вручную в Pinterest.'
+            ? '«Опубликовать» скопирует текст и покажет, как создать пин вручную в Pinterest.'
             : 'Сначала «Копировать текст», потом «Опубликовать» — и вставьте текст в единственное текстовое поле в Pinterest. Не возвращайтесь в PinBuddy, пока не закроете Pinterest — иначе окно «Поделиться» может зависнуть.'}
         </p>
 
         {shareResult === 'shared' && <p className="confirmation">Отправлено в приложение для публикации</p>}
         {shareResult === 'copied' && <p className="confirmation">Текст скопирован в буфер обмена</p>}
-        {shareResult === 'unsupported' && <ShareSheetFallback item={item} />}
+        {shareResult === 'unsupported' && <ShareSheetFallback item={item} textCopied={fallbackCopied} />}
 
         <div className="caption-card-secondary">
           <button type="button" onClick={() => onPublishedChange(item.id, !item.published)}>

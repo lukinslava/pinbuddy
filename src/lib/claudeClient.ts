@@ -1,22 +1,37 @@
 import type { GeneratedCaption } from '../types'
+import { ClaudeError } from './claudeError'
 import { parseCaption } from './responseParser'
 
-export class ClaudeError extends Error {
-  constructor(public code: 'unauthorized'|'rate_limited'|'http'|'bad_response', msg: string) {
-    super(msg); this.name = 'ClaudeError'
-  }
-}
+export { ClaudeError } from './claudeError'
+
 export interface ClaudeClient {
   generate(base64Frames: string[], system: string, user: string): Promise<GeneratedCaption>
 }
 
+const TIMEOUT_MS = 60_000
+
 export class FetchClaudeClient implements ClaudeClient {
-  constructor(private apiKey: string, private model: string, private maxTokens = 600) {}
+  private apiKey: string
+  private model: string
+  private maxTokens: number
+  private timeoutMs: number
+
+  constructor(apiKey: string, model: string, maxTokens = 600, timeoutMs = TIMEOUT_MS) {
+    this.apiKey = apiKey
+    this.model = model
+    this.maxTokens = maxTokens
+    this.timeoutMs = timeoutMs
+  }
+
   async generate(frames: string[], system: string, user: string): Promise<GeneratedCaption> {
     const content = [
       ...frames.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } })),
       { type: 'text', text: user },
     ]
+    // Without a deadline a stalled mobile connection leaves the card on
+    // "Генерация..." forever.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
     let resp: Response
     try {
       resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -28,9 +43,13 @@ export class FetchClaudeClient implements ClaudeClient {
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({ model: this.model, max_tokens: this.maxTokens, system, messages: [{ role: 'user', content }] }),
+        signal: controller.signal,
       })
     } catch {
-      throw new ClaudeError('bad_response', 'Сеть недоступна')
+      if (controller.signal.aborted) throw new ClaudeError('timeout', 'Claude не ответил за минуту — попробуйте ещё раз')
+      throw new ClaudeError('network', 'Сеть недоступна')
+    } finally {
+      clearTimeout(timer)
     }
 
     if (resp.status === 401) throw new ClaudeError('unauthorized', 'Проверьте API-ключ')
@@ -43,10 +62,16 @@ export class FetchClaudeClient implements ClaudeClient {
       } catch {
         /* body wasn't JSON — leave detail empty */
       }
+      if (resp.status >= 500) throw new ClaudeError('http', `Сервис Claude временно недоступен (${resp.status}), попробуйте позже`)
       throw new ClaudeError('http', `Ошибка API ${resp.status}${detail ? `: ${detail}` : ''}`)
     }
 
-    const json = await resp.json() as { content?: { type: string; text?: string }[] }
+    let json: { content?: { type: string; text?: string }[] }
+    try {
+      json = await resp.json()
+    } catch {
+      throw new ClaudeError('bad_response', 'Не удалось прочитать ответ Claude')
+    }
     const text = json.content?.find(b => b.type === 'text')?.text
     if (!text) throw new ClaudeError('bad_response', 'Пустой ответ модели')
     return parseCaption(text)
