@@ -16,13 +16,14 @@ function item(id: string, createdAt: number, patch: Partial<MediaItem> = {}): Me
     previewUrl: 'blob:old',
     status: { kind: 'idle' },
     text: '',
+    published: false,
     createdAt,
     ...patch,
   }
 }
 
 test('round-trips items with their files, oldest first', async () => {
-  const a = item('a', 2, { status: { kind: 'done' }, text: 'привет' })
+  const a = item('a', 2, { status: { kind: 'done' }, text: 'привет', published: true })
   const b = item('b', 1)
   await saveFile(a.id, a.file)
   await saveFile(b.id, b.file)
@@ -32,6 +33,8 @@ test('round-trips items with their files, oldest first', async () => {
   expect(loaded.map((i) => i.id)).toEqual(['b', 'a'])
   expect(loaded[1].text).toBe('привет')
   expect(loaded[1].file.name).toBe('a.jpg')
+  expect(loaded[1].published).toBe(true)
+  expect(loaded[0].published).toBe(false)
   await deleteItems(['a', 'b'])
 })
 

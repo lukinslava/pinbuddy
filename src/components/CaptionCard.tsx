@@ -8,9 +8,18 @@ interface Props {
   bulkGenerating: boolean
   onGenerate: (id: string) => void
   onTextChange: (id: string, text: string) => void
+  onPublishedChange: (id: string, published: boolean) => void
+  onRemove: (id: string) => void
 }
 
-export default function CaptionCard({ item, bulkGenerating, onGenerate, onTextChange }: Props) {
+export default function CaptionCard({
+  item,
+  bulkGenerating,
+  onGenerate,
+  onTextChange,
+  onPublishedChange,
+  onRemove,
+}: Props) {
   // Pinterest has a single combined text field (no separate title/description/tags
   // fields in practice), so editing here is one block too — set from the
   // generated caption, freely editable, saved with the item, and that's
@@ -63,13 +72,21 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate, onTextCh
     try {
       const result = await shareToPinterest(text, item.file)
       setShareResult(result)
+      // The user picked an app in the share sheet — most likely posted.
+      if (result === 'shared') onPublishedChange(item.id, true)
     } finally {
       setPublishing(false)
     }
   }
 
+  function handleRemove() {
+    // A generated but unpublished caption is work the user would lose.
+    if (item.caption && !item.published && !window.confirm('Убрать карточку? Подпись будет удалена.')) return
+    onRemove(item.id)
+  }
+
   return (
-    <li className="caption-card">
+    <li className={`caption-card${item.published ? ' caption-card-published' : ''}`}>
       <div className="caption-card-media">
         {item.type === 'photo' ? (
           <img src={item.previewUrl} alt="" />
@@ -79,11 +96,12 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate, onTextCh
       </div>
 
       <div className="caption-card-body">
-        <p className={`status status-${item.status.kind}`}>
-          {item.status.kind === 'idle' && 'Не сгенерировано'}
-          {item.status.kind === 'generating' && 'Генерация...'}
-          {item.status.kind === 'done' && 'Готово'}
-          {item.status.kind === 'failed' && `Ошибка: ${item.status.message}`}
+        <p className={`status status-${item.published ? 'published' : item.status.kind}`}>
+          {item.published && 'Опубликовано ✓'}
+          {!item.published && item.status.kind === 'idle' && 'Не сгенерировано'}
+          {!item.published && item.status.kind === 'generating' && 'Генерация...'}
+          {!item.published && item.status.kind === 'done' && 'Готово'}
+          {!item.published && item.status.kind === 'failed' && `Ошибка: ${item.status.message}`}
         </p>
 
         <label className="field">
@@ -117,6 +135,15 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate, onTextCh
         {shareResult === 'shared' && <p className="confirmation">Отправлено в приложение для публикации</p>}
         {shareResult === 'copied' && <p className="confirmation">Текст скопирован в буфер обмена</p>}
         {shareResult === 'unsupported' && <ShareSheetFallback item={item} />}
+
+        <div className="caption-card-secondary">
+          <button type="button" onClick={() => onPublishedChange(item.id, !item.published)}>
+            {item.published ? 'Снять отметку' : 'Отметить опубликованным'}
+          </button>
+          <button type="button" onClick={handleRemove} disabled={isGenerating}>
+            Убрать
+          </button>
+        </div>
       </div>
     </li>
   )

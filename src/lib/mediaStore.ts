@@ -18,6 +18,7 @@ interface StoredMeta {
   status: GenerationStatus
   caption?: GeneratedCaption
   text: string
+  published?: boolean          // absent in records saved before this field existed
   createdAt: number
 }
 
@@ -65,6 +66,7 @@ function toMeta(item: MediaItem): StoredMeta {
     status: item.status.kind === 'generating' ? { kind: 'idle' } : item.status,
     caption: item.caption,
     text: item.text,
+    published: item.published,
     createdAt: item.createdAt,
   }
 }
@@ -117,6 +119,7 @@ export async function loadItems(): Promise<MediaItem[]> {
       status: m.status.kind === 'generating' ? { kind: 'idle' } : m.status,
       caption: m.caption,
       text: m.text,
+      published: m.published ?? false,
       createdAt: m.createdAt,
     })
   })

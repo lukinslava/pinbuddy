@@ -6,7 +6,7 @@ import { FetchClaudeClient } from '../lib/claudeClient'
 import { generateCaption } from '../lib/captionGenerator'
 import { framesFromFile } from '../lib/frameExtractor'
 import { captionText } from '../lib/shareService'
-import { loadItems, saveFile, saveItems } from '../lib/mediaStore'
+import { deleteItems, loadItems, saveFile, saveItems } from '../lib/mediaStore'
 import CaptionCard from './CaptionCard'
 
 function mediaItemFromFile(file: File): MediaItem {
@@ -17,6 +17,7 @@ function mediaItemFromFile(file: File): MediaItem {
     previewUrl: URL.createObjectURL(file),
     status: { kind: 'idle' },
     text: '',
+    published: false,
     createdAt: Date.now(),
   }
 }
@@ -96,9 +97,24 @@ export default function GalleryView() {
     updateItem(id, { text })
   }
 
+  function setPublished(id: string, published: boolean) {
+    updateItem(id, { published })
+  }
+
+  function removeItems(ids: string[]) {
+    const gone = new Set(ids)
+    for (const it of items) if (gone.has(it.id)) URL.revokeObjectURL(it.previewUrl)
+    setItems((prev) => prev.filter((it) => !gone.has(it.id)))
+    deleteItems(ids).catch(() => setStorageError(true))
+  }
+
+  const publishedIds = items.filter((it) => it.published).map((it) => it.id)
+
   async function generateAll() {
     setGeneratingAll(true)
-    const targets = items.filter((it) => it.status.kind === 'idle' || it.status.kind === 'failed')
+    const targets = items.filter(
+      (it) => !it.published && (it.status.kind === 'idle' || it.status.kind === 'failed'),
+    )
     try {
       for (const item of targets) {
         // eslint-disable-next-line no-await-in-loop -- sequential by design, avoid hammering the API
@@ -121,6 +137,11 @@ export default function GalleryView() {
         <button type="button" onClick={generateAll} disabled={items.length === 0 || generatingAll}>
           {generatingAll ? 'Генерация...' : 'Сгенерировать все'}
         </button>
+        {publishedIds.length > 0 && (
+          <button type="button" className="secondary" onClick={() => removeItems(publishedIds)}>
+            Убрать опубликованные ({publishedIds.length})
+          </button>
+        )}
       </div>
 
       {storageError && (
@@ -139,6 +160,8 @@ export default function GalleryView() {
             bulkGenerating={generatingAll}
             onGenerate={generateOneById}
             onTextChange={changeText}
+            onPublishedChange={setPublished}
+            onRemove={(id) => removeItems([id])}
           />
         ))}
       </ul>

@@ -268,3 +268,33 @@ button:disabled {
   color: #c0392b;
   font-size: 0.9rem;
 }
+
+.gallery-controls button.secondary {
+  background: none;
+  color: var(--accent, #aa3bff);
+}
+
+.caption-card-published .caption-card-media {
+  opacity: 0.5;
+}
+
+.status-published {
+  color: var(--accent, #aa3bff);
+}
+
+.caption-card-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.caption-card-secondary button {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e5e4e7);
+  background: none;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}

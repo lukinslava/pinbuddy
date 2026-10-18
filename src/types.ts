@@ -17,5 +17,6 @@ export interface MediaItem {
   status: GenerationStatus
   caption?: GeneratedCaption
   text: string                // the editable text that gets copied to Pinterest
+  published: boolean          // marked as posted to Pinterest
   createdAt: number
 }
