@@ -1,27 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { MediaItem } from '../types'
-import { captionText, shareToPinterest } from '../lib/shareService'
+import { shareToPinterest } from '../lib/shareService'
 import ShareSheetFallback from './ShareSheetFallback'
 
 interface Props {
   item: MediaItem
   bulkGenerating: boolean
   onGenerate: (id: string) => void
+  onTextChange: (id: string, text: string) => void
 }
 
-export default function CaptionCard({ item, bulkGenerating, onGenerate }: Props) {
+export default function CaptionCard({ item, bulkGenerating, onGenerate, onTextChange }: Props) {
   // Pinterest has a single combined text field (no separate title/description/tags
-  // fields in practice), so editing here is one block too — initialized from the
-  // generated caption, freely editable, and that's exactly what gets copied.
-  const [text, setText] = useState(item.caption ? captionText(item.caption) : '')
+  // fields in practice), so editing here is one block too — set from the
+  // generated caption, freely editable, saved with the item, and that's
+  // exactly what gets copied.
+  const text = item.text
   const [shareResult, setShareResult] = useState<'shared' | 'copied' | 'unsupported' | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
-
-  useEffect(() => {
-    if (item.caption) setText(captionText(item.caption))
-  }, [item.caption])
 
   const isGenerating = item.status.kind === 'generating'
   const generateDisabled = isGenerating || bulkGenerating
@@ -92,7 +90,7 @@ export default function CaptionCard({ item, bulkGenerating, onGenerate }: Props)
           <span>Текст для Pinterest ({[...text].length} символов)</span>
           <textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => onTextChange(item.id, e.target.value)}
             disabled={!item.caption || isGenerating}
             rows={5}
           />

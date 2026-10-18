@@ -64,7 +64,12 @@ function App() {
           </button>
         )}
 
-        {view === 'gallery' ? <GalleryView /> : <SettingsView onDone={() => setView('gallery')} />}
+        {/* Gallery stays mounted while Settings is open, so picked files and
+            in-flight generations aren't lost when switching tabs. */}
+        <div hidden={view !== 'gallery'}>
+          <GalleryView />
+        </div>
+        {view === 'settings' && <SettingsView onDone={() => setView('gallery')} />}
       </main>
     </div>
   )

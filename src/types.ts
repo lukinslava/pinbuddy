@@ -16,4 +16,6 @@ export interface MediaItem {
   previewUrl: string          // object URL for <img>/<video>
   status: GenerationStatus
   caption?: GeneratedCaption
+  text: string                // the editable text that gets copied to Pinterest
+  createdAt: number
 }

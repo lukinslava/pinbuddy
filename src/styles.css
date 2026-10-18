@@ -263,3 +263,8 @@ button:disabled {
   opacity: 0.5;
   text-align: center;
 }
+
+.storage-warning {
+  color: #c0392b;
+  font-size: 0.9rem;
+}
