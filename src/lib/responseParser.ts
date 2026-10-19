@@ -1,7 +1,7 @@
 import type { GeneratedCaption } from '../types'
 import { ClaudeError } from './claudeError'
 
-const BAD = 'Модель вернула ответ в неожиданном формате'
+const BAD = 'Claude ответил в\u00a0неожиданном формате. Попробуйте ещё раз'
 
 export function parseCaption(text: string): GeneratedCaption {
   const start = text.indexOf('{'), end = text.lastIndexOf('}')

@@ -1,6 +1,7 @@
 export type MediaType = 'photo' | 'video'
+// queued: waiting its turn (or for an API key); generating: request in flight.
 export type GenerationStatus =
-  | { kind: 'idle' } | { kind: 'generating' }
+  | { kind: 'queued' } | { kind: 'generating' }
   | { kind: 'done' } | { kind: 'failed'; message: string }
 
 export interface GeneratedCaption {

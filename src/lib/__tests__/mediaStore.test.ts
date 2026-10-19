@@ -14,7 +14,7 @@ function item(id: string, createdAt: number, patch: Partial<MediaItem> = {}): Me
     type: 'photo',
     file: new File(['x'], `${id}.jpg`, { type: 'image/jpeg' }),
     previewUrl: 'blob:old',
-    status: { kind: 'idle' },
+    status: { kind: 'queued' },
     text: '',
     published: false,
     createdAt,
@@ -38,12 +38,12 @@ test('round-trips items with their files, oldest first', async () => {
   await deleteItems(['a', 'b'])
 })
 
-test('an in-flight generation is restored as idle', async () => {
+test('an in-flight generation is restored as queued', async () => {
   const c = item('c', 3, { status: { kind: 'generating' } })
   await saveFile(c.id, c.file)
   await saveItems([c])
   const [loaded] = await loadItems()
-  expect(loaded.status).toEqual({ kind: 'idle' })
+  expect(loaded.status).toEqual({ kind: 'queued' })
   await deleteItems(['c'])
 })
 

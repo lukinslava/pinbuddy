@@ -10,12 +10,15 @@ const DB_VERSION = 1
 const ITEMS = 'items'
 const FILES = 'files'
 
+// 'idle' is the pre-queue name for "not generated yet", kept so old records load.
+type StoredStatus = GenerationStatus | { kind: 'idle' }
+
 interface StoredMeta {
   id: string
   type: MediaType
   name: string
   mimeType: string
-  status: GenerationStatus
+  status: StoredStatus
   caption?: GeneratedCaption
   text: string
   published?: boolean          // absent in records saved before this field existed
@@ -56,14 +59,18 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   })
 }
 
+function restoreStatus(s: StoredStatus): GenerationStatus {
+  return s.kind === 'idle' || s.kind === 'generating' ? { kind: 'queued' } : s
+}
+
 function toMeta(item: MediaItem): StoredMeta {
   return {
     id: item.id,
     type: item.type,
     name: item.file.name,
     mimeType: item.file.type,
-    // A generation can't survive a reload, so never persist it as in-flight.
-    status: item.status.kind === 'generating' ? { kind: 'idle' } : item.status,
+    // A generation can't survive a reload: store it as queued so it resumes.
+    status: item.status.kind === 'generating' ? { kind: 'queued' } : item.status,
     caption: item.caption,
     text: item.text,
     published: item.published,
@@ -116,7 +123,7 @@ export async function loadItems(): Promise<MediaItem[]> {
       type: m.type,
       file,
       previewUrl: URL.createObjectURL(file),
-      status: m.status.kind === 'generating' ? { kind: 'idle' } : m.status,
+      status: restoreStatus(m.status),
       caption: m.caption,
       text: m.text,
       published: m.published ?? false,
