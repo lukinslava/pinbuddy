@@ -10,6 +10,6 @@ test('defaults', () => {
   expect(s.model).toBe(DEFAULT_MODEL)
 })
 test('persists', () => {
-  saveSettings({ niche: 'уют', language: 'русский', model: 'm' })
+  saveSettings({ niche: 'уют', language: 'русский', model: 'm', youtubeChannel: '' })
   expect(getSettings().niche).toBe('уют')
 })

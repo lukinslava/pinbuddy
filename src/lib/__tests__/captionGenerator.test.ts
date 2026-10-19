@@ -2,13 +2,13 @@ import { expect, test } from 'vitest'
 import { generateCaption } from '../captionGenerator'
 import { ClaudeError, type ClaudeClient } from '../claudeClient'
 
-const settings = { niche: 'lifestyle', language: 'русский', model: 'm' }
+const settings = { niche: 'lifestyle', language: 'русский', model: 'm', youtubeChannel: '' }
 
 test('applies rules to client output', async () => {
-  const stub: ClaudeClient = { generate: async () => ({ title: 'x'.repeat(200), description: 'd', tags: ['дом','#дом','уют'] }) }
+  const stub: ClaudeClient = { generate: async () => ({ title: 'x'.repeat(200), description: 'd', topics: ['дом','#дом','уют'] }) }
   const out = await generateCaption(stub, settings, ['ZQ=='])
   expect(out.title.length).toBe(100)
-  expect(out.tags).toEqual(['#дом','#уют'])
+  expect(out.topics).toEqual(['дом','уют'])
 })
 test('propagates error', async () => {
   const stub: ClaudeClient = { generate: async () => { throw new Error('boom') } }
@@ -19,7 +19,7 @@ test('retries once on a malformed answer', async () => {
   const stub: ClaudeClient = { generate: async () => {
     calls++
     if (calls === 1) throw new ClaudeError('bad_response', 'bad')
-    return { title: 't', description: 'd', tags: [] }
+    return { title: 't', description: 'd', topics: [] }
   } }
   const out = await generateCaption(stub, settings, [])
   expect(out.title).toBe('t')

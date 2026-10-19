@@ -9,7 +9,7 @@ function mockFetch(status: number, body: unknown) {
 }
 
 test('returns parsed caption on 200', async () => {
-  mockFetch(200, { content: [{ type: 'text', text: '{"title":"T","description":"D","tags":["#a"]}' }] })
+  mockFetch(200, { content: [{ type: 'text', text: '{"title":"T","description":"D","topics":["a"]}' }] })
   const c = new FetchClaudeClient('key', 'model')
   const cap = await c.generate(['ZmFrZQ=='], 'sys', 'usr')
   expect(cap.title).toBe('T')

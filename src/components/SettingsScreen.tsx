@@ -21,11 +21,12 @@ export default function SettingsScreen({ onboarding, onSaved }: Props) {
   const [apiKey, setApiKeyField] = useState(getApiKey() ?? '')
   const [niche, setNiche] = useState(initial.niche)
   const [model, setModel] = useState(initial.model)
+  const [youtubeChannel, setYoutubeChannel] = useState(initial.youtubeChannel)
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setApiKey(apiKey)
-    saveSettings({ ...getSettings(), niche: niche.trim() || initial.niche, model })
+    saveSettings({ ...getSettings(), niche: niche.trim() || initial.niche, model, youtubeChannel: youtubeChannel.trim() })
     onSaved(getApiKey())
   }
 
@@ -61,6 +62,20 @@ export default function SettingsScreen({ onboarding, onSaved }: Props) {
         <span>{copy.settings.nicheLabel}</span>
         <input type="text" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="lifestyle" />
         <span className="field-hint">{copy.settings.nicheHint}</span>
+      </label>
+
+      <label className="field">
+        <span>{copy.settings.youtubeLabel}</span>
+        <input
+          type="url"
+          inputMode="url"
+          value={youtubeChannel}
+          onChange={(e) => setYoutubeChannel(e.target.value)}
+          placeholder="https://youtube.com/@канал"
+          autoCapitalize="off"
+          spellCheck={false}
+        />
+        <span className="field-hint">{copy.settings.youtubeHint}</span>
       </label>
 
       {!onboarding && (

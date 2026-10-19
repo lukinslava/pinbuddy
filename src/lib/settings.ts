@@ -1,7 +1,7 @@
 export const DEFAULT_MODEL = 'claude-haiku-4-5-20251001'
-export interface Settings { niche: string; language: string; model: string }
+export interface Settings { niche: string; language: string; model: string; youtubeChannel: string }
 const KEY = 'pinbuddy.settings'
-const DEFAULTS: Settings = { niche: 'lifestyle', language: 'русский', model: DEFAULT_MODEL }
+const DEFAULTS: Settings = { niche: 'lifestyle', language: 'русский', model: DEFAULT_MODEL, youtubeChannel: '' }
 
 export function getSettings(): Settings {
   try {
