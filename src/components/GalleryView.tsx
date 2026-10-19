@@ -9,7 +9,7 @@ import { captionText } from '../lib/shareService'
 import { deleteItems, loadItems, saveFile, saveItems } from '../lib/mediaStore'
 import CaptionCard from './CaptionCard'
 
-function mediaItemFromFile(file: File): MediaItem {
+function mediaItemFromFile(file: File, createdAt: number): MediaItem {
   return {
     id: crypto.randomUUID(),
     type: file.type.startsWith('video') ? 'video' : 'photo',
@@ -18,7 +18,7 @@ function mediaItemFromFile(file: File): MediaItem {
     status: { kind: 'idle' },
     text: '',
     published: false,
-    createdAt: Date.now(),
+    createdAt,
   }
 }
 
@@ -59,7 +59,10 @@ export default function GalleryView() {
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files || files.length === 0) return
-    const newItems = Array.from(files).map(mediaItemFromFile)
+    // Files picked together share a timestamp; offset by index so the
+    // restored order after a reload matches the order they were picked in.
+    const now = Date.now()
+    const newItems = Array.from(files).map((file, i) => mediaItemFromFile(file, now + i))
     setItems((prev) => [...prev, ...newItems])
     for (const it of newItems) saveFile(it.id, it.file).catch(() => setStorageError(true))
     e.target.value = ''

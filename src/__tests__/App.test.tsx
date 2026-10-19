@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, beforeEach, expect, test } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from '../App'
 import { deleteItems, loadItems } from '../lib/mediaStore'
 
@@ -37,4 +37,17 @@ test('marking a card published offers bulk removal, which clears it', async () =
   fireEvent.click(screen.getByRole('button', { name: /Убрать опубликованные \(1\)/ }))
   expect(screen.queryByText('Опубликовано ✓')).not.toBeInTheDocument()
   expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+})
+
+test('a batch of files keeps its order after a reload', async () => {
+  const names = ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg']
+  const first = render(<App />)
+  const input = first.container.querySelector('input[type="file"]') as HTMLInputElement
+  fireEvent.change(input, { target: { files: names.map((n) => new File([n], n, { type: 'image/jpeg' })) } })
+  await screen.findAllByRole('listitem')
+  await waitFor(async () => expect(await loadItems()).toHaveLength(names.length))
+  first.unmount()
+
+  const restored = await loadItems()
+  expect(restored.map((it) => it.file.name)).toEqual(names)
 })
