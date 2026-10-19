@@ -4,7 +4,6 @@ import { getSettings } from './settings'
 import { ClaudeError, FetchClaudeClient } from './claudeClient'
 import { generateCaption } from './captionGenerator'
 import { framesFromFile } from './frameExtractor'
-import { captionText } from './shareService'
 import { deleteItems, loadItems, saveFile, saveItems } from './mediaStore'
 
 function newItem(file: File, createdAt: number): MediaItem {
@@ -14,7 +13,8 @@ function newItem(file: File, createdAt: number): MediaItem {
     file,
     previewUrl: URL.createObjectURL(file),
     status: { kind: 'queued' },
-    text: '',
+    title: '',
+    description: '',
     published: false,
     createdAt,
   }
@@ -76,7 +76,7 @@ export function useGallery(apiKey: string | null) {
         const frames = await framesFromFile(next.file)
         const client = new FetchClaudeClient(apiKey, settings.model)
         const caption = await generateCaption(client, settings, frames, next.type)
-        update(next.id, { status: { kind: 'done' }, caption, text: captionText(caption) })
+        update(next.id, { status: { kind: 'done' }, caption, title: caption.title, description: caption.description })
       } catch (err) {
         if (err instanceof ClaudeError && err.code === 'unauthorized') {
           // Not this item's fault: put it back and wait for a new key.
@@ -122,7 +122,8 @@ export function useGallery(apiKey: string | null) {
     add,
     remove,
     requeue,
-    setText: (id: string, text: string) => update(id, { text }),
+    setTitle: (id: string, title: string) => update(id, { title }),
+    setDescription: (id: string, description: string) => update(id, { description }),
     setPublished: (id: string, published: boolean) => update(id, { published }),
     setLink: (id: string, link: string) => update(id, { link }),
   }

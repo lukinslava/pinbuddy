@@ -20,7 +20,8 @@ export interface MediaItem {
   previewUrl: string          // object URL for <img>/<video>
   status: GenerationStatus
   caption?: GeneratedCaption
-  text: string                // the editable text that gets copied to Pinterest
+  title: string               // editable, goes to Pinterest's Title field
+  description: string         // editable, goes to Description (shared with the photo)
   published: boolean          // marked as posted to Pinterest
   link?: string               // YouTube URL for Pinterest's link field; falls back to the channel from settings
   createdAt: number

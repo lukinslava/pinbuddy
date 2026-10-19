@@ -18,7 +18,7 @@ function firstLine(text: string): string {
 
 function Row({ item, hasKey, onOpen }: { item: MediaItem; hasKey: boolean; onOpen: (id: string) => void }) {
   const detail =
-    item.status.kind === 'failed' && !item.published ? item.status.message : firstLine(item.text) || item.file.name
+    item.status.kind === 'failed' && !item.published ? item.status.message : item.title || firstLine(item.description) || item.file.name
   return (
     <li>
       <button type="button" className={`pin-row${item.published ? ' is-published' : ''}`} onClick={() => onOpen(item.id)}>

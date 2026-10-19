@@ -20,7 +20,10 @@ interface StoredMeta {
   mimeType: string
   status: StoredStatus
   caption?: GeneratedCaption
-  text: string
+  title?: string
+  description?: string
+  /** Pre-split single text (title on the first line), from older versions. */
+  text?: string
   link?: string
   published?: boolean          // absent in records saved before this field existed
   createdAt: number
@@ -64,6 +67,15 @@ function restoreStatus(s: StoredStatus): GenerationStatus {
   return s.kind === 'idle' || s.kind === 'generating' ? { kind: 'queued' } : s
 }
 
+function restoreText(m: StoredMeta): { title: string; description: string } {
+  if (m.title !== undefined || m.description !== undefined) return { title: m.title ?? '', description: m.description ?? '' }
+  // Older records kept one text block: title, blank line, description.
+  const text = m.text ?? ''
+  const nl = text.indexOf('\n')
+  if (nl < 0) return { title: text.trim(), description: '' }
+  return { title: text.slice(0, nl).trim(), description: text.slice(nl).trim() }
+}
+
 function toMeta(item: MediaItem): StoredMeta {
   return {
     id: item.id,
@@ -73,7 +85,8 @@ function toMeta(item: MediaItem): StoredMeta {
     // A generation can't survive a reload: store it as queued so it resumes.
     status: item.status.kind === 'generating' ? { kind: 'queued' } : item.status,
     caption: item.caption,
-    text: item.text,
+    title: item.title,
+    description: item.description,
     link: item.link,
     published: item.published,
     createdAt: item.createdAt,
@@ -127,7 +140,7 @@ export async function loadItems(): Promise<MediaItem[]> {
       previewUrl: URL.createObjectURL(file),
       status: restoreStatus(m.status),
       caption: m.caption,
-      text: m.text,
+      ...restoreText(m),
       link: m.link,
       published: m.published ?? false,
       createdAt: m.createdAt,

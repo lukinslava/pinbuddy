@@ -21,6 +21,8 @@ export default defineConfig({
       workbox: {
         // Minimal app-shell precache only — no offline-first data caching.
         globPatterns: ['index.html', 'manifest.webmanifest', 'assets/*.{js,css}', 'icons/*.png', 'favicon.svg'],
+        // Standalone pages (privacy policy) must load as themselves, not the app shell.
+        navigateFallbackDenylist: [/^\/privacy/],
       },
     }),
   ],

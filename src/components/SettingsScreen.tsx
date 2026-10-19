@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { getApiKey, setApiKey } from '../lib/keyStore'
 import { getSettings, saveSettings, DEFAULT_MODEL } from '../lib/settings'
+import { cleanLink } from '../lib/link'
 import { copy } from '../copy'
 
 const MODEL_OPTIONS = [
@@ -26,7 +27,7 @@ export default function SettingsScreen({ onboarding, onSaved }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setApiKey(apiKey)
-    saveSettings({ ...getSettings(), niche: niche.trim() || initial.niche, model, youtubeChannel: youtubeChannel.trim() })
+    saveSettings({ ...getSettings(), niche: niche.trim() || initial.niche, model, youtubeChannel: cleanLink(youtubeChannel) })
     onSaved(getApiKey())
   }
 

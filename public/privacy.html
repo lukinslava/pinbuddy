@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PinBuddy — Privacy Policy</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+      h2 { font-size: 1.15rem; margin-top: 2rem; }
+      .muted { opacity: 0.7; }
+    </style>
+  </head>
+  <body>
+    <h1>PinBuddy Privacy Policy</h1>
+    <p class="muted">Last updated: October 19, 2026</p>
+
+    <p>
+      PinBuddy is a personal tool for preparing and publishing Pins. It helps the account owner write a
+      title and description for their own photos and videos and publish them to their own Pinterest account.
+    </p>
+
+    <h2>What stays on your device</h2>
+    <p>
+      The photos and videos you select, the generated titles and descriptions, and your settings are stored
+      only in your browser on your device (IndexedDB and local storage). PinBuddy has no user database and
+      does not keep copies of your media on a server.
+    </p>
+
+    <h2>What is sent to Anthropic</h2>
+    <p>
+      To write a caption, PinBuddy sends a downscaled image (or up to three frames of a video) to the
+      Anthropic Claude API using the API key you provide. Anthropic processes this data under its own terms
+      and privacy policy.
+    </p>
+
+    <h2>What is sent to Pinterest</h2>
+    <p>
+      When you connect your Pinterest account, you sign in on Pinterest's own page (OAuth). PinBuddy requests
+      access only to read your boards and to create Pins. When you press “Publish”, the selected media,
+      title, description, link, board and alt text are sent to the Pinterest API to create the Pin on your
+      account. PinBuddy never asks for or stores your Pinterest password.
+    </p>
+    <p>
+      The Pinterest access token is kept on your device. A small server function is used only to exchange
+      the sign-in code for a token and to relay your publish requests to the Pinterest API; it does not log
+      or store tokens or content.
+    </p>
+
+    <h2>Disconnecting and deleting data</h2>
+    <p>
+      You can disconnect Pinterest in PinBuddy's settings, which deletes the token from your device. You can
+      also revoke access at any time in your Pinterest account settings under connected apps. Clearing the
+      app's data in your browser removes everything PinBuddy stored on your device.
+    </p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy: <a href="https://t.me/slavanotes">t.me/slavanotes</a></p>
+  </body>
+</html>
