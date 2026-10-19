@@ -69,7 +69,7 @@ test('added files are captioned automatically, one after another', async () => {
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
 
-test('copy → publish → confirm walks to the next pin and marks this one published', async () => {
+test('video: publish copies the description, shows manual steps, then walks to the next pin', async () => {
   setApiKey('sk-ant-test')
   claudeReplies('Первый', 'Второй')
   const { container } = render(<App />)
@@ -78,20 +78,32 @@ test('copy → publish → confirm walks to the next pin and marks this one publ
   await screen.findByText(/Второй/)
 
   fireEvent.click(screen.getByText(/Первый/))
-  fireEvent.click(screen.getByRole('button', { name: /Скопировать/ }))
-  await screen.findByRole('button', { name: /Скопировано/ })
-  expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Первый'))
-
-  // Video: no share sheet, manual steps instead.
-  fireEvent.click(screen.getByRole('button', { name: /Опубликовать/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Опубликовать' }))
   expect(await screen.findByText('Видео публикуется вручную')).toBeInTheDocument()
+  expect(writeText).toHaveBeenLastCalledWith('Описание')
   fireEvent.click(screen.getByRole('button', { name: /Да, к\sследующему/ }))
 
-  expect(await screen.findByDisplayValue(/Второй/)).toBeInTheDocument()
-  expect(screen.getByText('2 из 2')).toBeInTheDocument()
+  expect(await screen.findByDisplayValue('Второй')).toBeInTheDocument()
+  expect(screen.getByText(/^2 из\s2$/)).toBeInTheDocument()
 
   fireEvent.click(screen.getByRole('button', { name: /Все пины/ }))
-  expect(screen.getByText('Опубликовано 1 из 2')).toBeInTheDocument()
+  expect(screen.getByText(/Опубликовано 1 из/)).toBeInTheDocument()
+})
+
+test('photo: description goes with the share sheet, then title and link are added by editing', async () => {
+  setApiKey('sk-ant-test')
+  claudeReplies('Кофе')
+  const share = vi.fn(async () => {})
+  Object.assign(navigator, { share, canShare: () => true })
+  const { container } = render(<App />)
+  await screen.findByText('Пока пусто')
+  pick(container, 'a.jpg')
+  fireEvent.click(await screen.findByText(/Кофе/))
+
+  fireEvent.click(screen.getByRole('button', { name: 'Опубликовать' }))
+  expect(await screen.findByText(/Добавьте заголовок/)).toBeInTheDocument()
+  expect(share).toHaveBeenCalledWith(expect.objectContaining({ text: 'Описание' }))
+  Object.assign(navigator, { share: undefined, canShare: undefined })
 })
 
 test('a rejected key pauses the queue until the key is changed', async () => {
@@ -116,7 +128,7 @@ test('a rejected key pauses the queue until the key is changed', async () => {
 test('saved pins without a key wait for one, then get captioned', async () => {
   const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' })
   await saveFile('w', file)
-  await saveItems([{ id: 'w', type: 'photo', file, previewUrl: '', status: { kind: 'queued' }, text: '', published: false, createdAt: 1 }])
+  await saveItems([{ id: 'w', type: 'photo', file, previewUrl: '', status: { kind: 'queued' }, title: '', description: '', published: false, createdAt: 1 }])
   claudeReplies('Дождался')
   render(<App />)
 
@@ -160,7 +172,7 @@ test('a batch keeps its order after a reload, and settings do not drop the list'
   expect((await loadItems()).map((it) => it.file.name)).toEqual(names)
 })
 
-test('pin shows topics, and the copied text ends with the YouTube link', async () => {
+test('pin fields copy one by one; the link defaults to the channel and loses tracking params', async () => {
   setApiKey('sk-ant-test')
   localStorage.setItem('pinbuddy.settings', JSON.stringify({ youtubeChannel: 'https://youtube.com/@me' }))
   claudeReplies('Кофе')
@@ -170,10 +182,15 @@ test('pin shows topics, and the copied text ends with the YouTube link', async (
   fireEvent.click(await screen.findByText(/Кофе/))
 
   expect(screen.getByText('дом')).toBeInTheDocument()
-  expect(screen.getByDisplayValue('https://youtube.com/@me')).toBeInTheDocument()
+  const [copyTitle, copyDescription, copyLink] = screen.getAllByRole('button', { name: 'Копировать' })
 
-  fireEvent.change(screen.getByDisplayValue('https://youtube.com/@me'), { target: { value: 'https://youtu.be/abc' } })
-  fireEvent.click(screen.getByRole('button', { name: /Скопировать/ }))
-  await screen.findByRole('button', { name: /Скопировано/ })
-  expect(writeText).toHaveBeenLastCalledWith('Кофе\n\nОписание\n\nhttps://youtu.be/abc')
+  fireEvent.click(copyTitle)
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Кофе'))
+  fireEvent.click(copyDescription)
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Описание'))
+
+  const linkInput = screen.getByDisplayValue('https://youtube.com/@me')
+  fireEvent.change(linkInput, { target: { value: 'https://youtu.be/abc?si=XYZ' } })
+  fireEvent.click(copyLink)
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('https://youtu.be/abc'))
 })

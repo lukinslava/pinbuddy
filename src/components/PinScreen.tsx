@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import type { MediaItem } from '../types'
 import type { Gallery } from '../lib/useGallery'
-import { captionText, clipboardText, shareToPinterest } from '../lib/shareService'
+import { shareToPinterest } from '../lib/shareService'
+import { cleanLink } from '../lib/link'
 import { getSettings } from '../lib/settings'
 import { copy } from '../copy'
 import StatusLabel from './StatusLabel'
@@ -17,48 +18,59 @@ interface Props {
   onBack: () => void
 }
 
-// What happened after "Опубликовать": the share sheet was used (ask whether it
-// worked), or the file has to be posted by hand (video, or no share support).
-type After = null | 'ask' | 'video' | 'manual'
+// Pinterest's own field limits.
+const TITLE_LIMIT = 100
+const DESCRIPTION_LIMIT = 800
+
+type Field = 'title' | 'description' | 'link'
+
+// After "Опубликовать": 'photo' — the photo and description went through the
+// share sheet, title and link are added by editing the pin; 'video' / 'manual'
+// — the pin is created by hand in Pinterest, field by field.
+type After = null | 'photo' | 'video' | 'manual'
 
 export default function PinScreen({ item, position, total, nextId, hasKey, gallery, onOpen, onBack }: Props) {
-  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'failed'>('idle')
+  const [copied, setCopied] = useState<Field | null>(null)
+  const [copyFailed, setCopyFailed] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [after, setAfter] = useState<After>(null)
+  const copiedTimer = useRef<number | undefined>(undefined)
 
   const busy = item.status.kind === 'queued' || item.status.kind === 'generating'
   const ready = item.status.kind === 'done' && !!item.caption
-  const text = item.text
   // A pin without its own link uses the channel from settings.
-  const link = item.link ?? getSettings().youtubeChannel
+  const link = item.link ?? cleanLink(getSettings().youtubeChannel)
+  const hasLink = cleanLink(link) !== ''
   const topics = item.caption?.topics ?? []
-  const payload = clipboardText(text, link)
 
-  async function copyText(): Promise<boolean> {
+  async function copyField(field: Field) {
+    const value = field === 'title' ? item.title : field === 'description' ? item.description : cleanLink(link)
     try {
-      await navigator.clipboard.writeText(payload)
-      setCopyState('ok')
-      return true
+      await navigator.clipboard.writeText(value)
+      setCopyFailed(false)
+      setCopied(field)
+      window.clearTimeout(copiedTimer.current)
+      copiedTimer.current = window.setTimeout(() => setCopied(null), 2000)
     } catch {
-      setCopyState('failed')
-      return false
+      setCopyFailed(true)
     }
   }
 
-  // Photos go through the share sheet. Video never does: on iOS the share
-  // sheet gets stuck after returning from Pinterest with a video (reproducible,
-  // not fixable from JS), so video is posted by hand. A tap here is a clean
-  // user gesture, so copying for video is reliable.
+  // Photos go through the share sheet with the description as the shared text
+  // — Pinterest puts it into Description by itself. Title and link can't be
+  // passed that way, so they're added by editing the pin afterwards (after the
+  // share sheet has closed, switching apps is safe). Video never uses the
+  // share sheet: on iOS it gets stuck after returning from Pinterest.
   async function publish() {
     if (item.type === 'video') {
-      await copyText()
+      await copyField('description')
       setAfter('video')
       return
     }
     setPublishing(true)
     try {
-      const result = await shareToPinterest(payload, item.file)
-      if (result === 'shared') setAfter('ask')
+      const result = await shareToPinterest(item.description, item.file)
+      if (result === 'shared') setAfter('photo')
       else if (result === 'unsupported') setAfter('manual')
       // 'copied' = the sheet was dismissed; stay on the publish step.
     } finally {
@@ -73,11 +85,10 @@ export default function PinScreen({ item, position, total, nextId, hasKey, galle
   }
 
   function regenerate() {
-    const edited = item.caption && text !== captionText(item.caption)
+    const edited = item.caption && (item.title !== item.caption.title || item.description !== item.caption.description)
     if (edited && !window.confirm(copy.pin.confirmRegenerate)) return
     gallery.requeue([item.id])
     setAfter(null)
-    setCopyState('idle')
   }
 
   function remove() {
@@ -86,15 +97,20 @@ export default function PinScreen({ item, position, total, nextId, hasKey, galle
     onBack()
   }
 
-  const steps =
-    after === 'video' || after === 'manual'
-      ? copy.pin.publishSteps({
-          video: item.type === 'video',
-          copied: after === 'manual' || copyState === 'ok',
-          link: link.trim() !== '',
-          topics: topics.length > 0,
-        })
-      : null
+  const help =
+    after === 'photo'
+      ? { title: copy.pin.afterPhotoTitle, steps: copy.pin.afterPhotoSteps(hasLink) }
+      : after === 'video'
+        ? { title: copy.pin.videoHelpTitle, steps: copy.pin.manualSteps(true, hasLink) }
+        : after === 'manual'
+          ? { title: copy.pin.manualHelpTitle, steps: copy.pin.manualSteps(false, hasLink) }
+          : null
+
+  const copyButton = (field: Field) => (
+    <button type="button" className="button-link copy-button" onClick={() => copyField(field)}>
+      {copied === field ? `${copy.pin.copiedField} ✓` : copy.pin.copyField}
+    </button>
+  )
 
   return (
     <div className="screen pin-screen">
@@ -121,59 +137,87 @@ export default function PinScreen({ item, position, total, nextId, hasKey, galle
         </div>
       )}
 
-      {(item.caption || busy) && (
-        <label className="field">
-          <span className="field-head">
-            <span>{copy.pin.captionLabel}</span>
-            {item.caption && <span className="muted">{copy.pin.chars([...text].length)}</span>}
-          </span>
-          <textarea
-            value={busy && !item.caption ? copy.status.generating : text}
-            onChange={(e) => gallery.setText(item.id, e.target.value)}
-            disabled={busy || !item.caption}
-            rows={7}
-          />
-          {item.caption && <span className="field-hint">{copy.pin.captionHint}</span>}
-        </label>
-      )}
-
-      {item.caption && (
-        <label className="field">
-          <span>{copy.pin.linkLabel}</span>
-          <input
-            type="url"
-            inputMode="url"
-            value={link}
-            onChange={(e) => gallery.setLink(item.id, e.target.value)}
-            placeholder="https://youtube.com/…"
-            autoCapitalize="off"
-            spellCheck={false}
-          />
-          <span className="field-hint">{copy.pin.linkHint}</span>
-        </label>
-      )}
-
-      {topics.length > 0 && (
+      {busy && !item.caption && (
         <div className="field">
-          <span>{copy.pin.topicsLabel}</span>
-          <ul className="topics">
-            {topics.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-          <span className="field-hint">{copy.pin.topicsHint}</span>
+          <textarea value={copy.status.generating} disabled rows={3} aria-label={copy.status.generating} />
         </div>
       )}
 
-      {copyState === 'failed' && <p className="error-text">{copy.pin.copyFailed}</p>}
+      {item.caption && (
+        <>
+          <div className="field">
+            <div className="field-head">
+              <label htmlFor="pin-title">{copy.pin.titleLabel}</label>
+              <span className="muted">{copy.pin.counter([...item.title].length, TITLE_LIMIT)}</span>
+              {copyButton('title')}
+            </div>
+            <textarea
+              id="pin-title"
+              value={item.title}
+              onChange={(e) => gallery.setTitle(item.id, e.target.value.replace(/\n/g, ' '))}
+              disabled={busy}
+              rows={2}
+              maxLength={TITLE_LIMIT}
+            />
+          </div>
 
-      {steps && (
+          <div className="field">
+            <div className="field-head">
+              <label htmlFor="pin-description">{copy.pin.descriptionLabel}</label>
+              <span className="muted">{copy.pin.counter([...item.description].length, DESCRIPTION_LIMIT)}</span>
+              {copyButton('description')}
+            </div>
+            <textarea
+              id="pin-description"
+              value={item.description}
+              onChange={(e) => gallery.setDescription(item.id, e.target.value)}
+              disabled={busy}
+              rows={6}
+              maxLength={DESCRIPTION_LIMIT}
+            />
+          </div>
+
+          <div className="field">
+            <div className="field-head">
+              <label htmlFor="pin-link">{copy.pin.linkLabel}</label>
+              {hasLink && copyButton('link')}
+            </div>
+            <input
+              id="pin-link"
+              type="url"
+              inputMode="url"
+              value={link}
+              onChange={(e) => gallery.setLink(item.id, e.target.value)}
+              onBlur={(e) => gallery.setLink(item.id, cleanLink(e.target.value))}
+              placeholder="https://youtube.com/…"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+          </div>
+
+          {topics.length > 0 && (
+            <div className="field">
+              <span className="field-head">{copy.pin.topicsLabel}</span>
+              <ul className="topics">
+                {topics.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <span className="field-hint">{copy.pin.topicsHint}</span>
+            </div>
+          )}
+        </>
+      )}
+
+      {copyFailed && <p className="error-text">{copy.pin.copyFailed}</p>}
+
+      {help && (
         <div className="notice">
           <p>
-            <strong>{after === 'video' ? copy.pin.videoHelpTitle : copy.pin.manualHelpTitle}</strong>
+            <strong>{help.title}</strong>
           </p>
           <ol className="steps">
-            {steps.map((s) => (
+            {help.steps.map((s) => (
               <li key={s}>{s}</li>
             ))}
           </ol>
@@ -223,28 +267,10 @@ export default function PinScreen({ item, position, total, nextId, hasKey, galle
           </>
         ) : ready ? (
           <>
-            <p className="action-hint">
-              {copyState !== 'ok' ? copy.pin.stepHint : item.type === 'photo' ? copy.pin.photoHint(link.trim() !== '') : ''}
-            </p>
-            <div className="action-row">
-              <button
-                type="button"
-                className={`button ${copyState === 'ok' ? 'button-secondary' : 'button-primary'}`}
-                onClick={copyText}
-              >
-                <span className="step-num">1</span>
-                {copyState === 'ok' ? `${copy.pin.copied} ✓` : copy.pin.copy}
-              </button>
-              <button
-                type="button"
-                className={`button ${copyState === 'ok' ? 'button-primary' : 'button-secondary'}`}
-                onClick={publish}
-                disabled={publishing}
-              >
-                <span className="step-num">2</span>
-                {publishing ? copy.pin.publishing : copy.pin.publish}
-              </button>
-            </div>
+            <p className="action-hint">{item.type === 'photo' ? copy.pin.photoHint : copy.pin.videoHint}</p>
+            <button type="button" className="button button-primary" onClick={publish} disabled={publishing}>
+              {publishing ? copy.pin.publishing : copy.pin.publish}
+            </button>
           </>
         ) : null}
       </ActionBar>
