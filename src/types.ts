@@ -1,6 +1,7 @@
 export type MediaType = 'photo' | 'video'
+// queued: waiting its turn (or for an API key); generating: request in flight.
 export type GenerationStatus =
-  | { kind: 'idle' } | { kind: 'generating' }
+  | { kind: 'queued' } | { kind: 'generating' }
   | { kind: 'done' } | { kind: 'failed'; message: string }
 
 export interface GeneratedCaption {
@@ -16,4 +17,7 @@ export interface MediaItem {
   previewUrl: string          // object URL for <img>/<video>
   status: GenerationStatus
   caption?: GeneratedCaption
+  text: string                // the editable text that gets copied to Pinterest
+  published: boolean          // marked as posted to Pinterest
+  createdAt: number
 }

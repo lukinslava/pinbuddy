@@ -12,3 +12,7 @@ test('parses with code fence', () => {
 test('throws on garbage', () => {
   expect(() => parseCaption('no json')).toThrow()
 })
+test('broken JSON becomes a readable bad_response error', () => {
+  expect(() => parseCaption('{"title": "t",')).toThrow(/неожиданном формате/)
+  expect(() => parseCaption('{"title": "t", oops}')).toThrow(/неожиданном формате/)
+})
