@@ -21,6 +21,7 @@ interface StoredMeta {
   status: StoredStatus
   caption?: GeneratedCaption
   text: string
+  link?: string
   published?: boolean          // absent in records saved before this field existed
   createdAt: number
 }
@@ -73,6 +74,7 @@ function toMeta(item: MediaItem): StoredMeta {
     status: item.status.kind === 'generating' ? { kind: 'queued' } : item.status,
     caption: item.caption,
     text: item.text,
+    link: item.link,
     published: item.published,
     createdAt: item.createdAt,
   }
@@ -126,6 +128,7 @@ export async function loadItems(): Promise<MediaItem[]> {
       status: restoreStatus(m.status),
       caption: m.caption,
       text: m.text,
+      link: m.link,
       published: m.published ?? false,
       createdAt: m.createdAt,
     })

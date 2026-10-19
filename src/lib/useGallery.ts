@@ -75,7 +75,7 @@ export function useGallery(apiKey: string | null) {
         const settings = getSettings()
         const frames = await framesFromFile(next.file)
         const client = new FetchClaudeClient(apiKey, settings.model)
-        const caption = await generateCaption(client, settings, frames)
+        const caption = await generateCaption(client, settings, frames, next.type)
         update(next.id, { status: { kind: 'done' }, caption, text: captionText(caption) })
       } catch (err) {
         if (err instanceof ClaudeError && err.code === 'unauthorized') {
@@ -124,6 +124,7 @@ export function useGallery(apiKey: string | null) {
     requeue,
     setText: (id: string, text: string) => update(id, { text }),
     setPublished: (id: string, published: boolean) => update(id, { published }),
+    setLink: (id: string, link: string) => update(id, { link }),
   }
 }
 

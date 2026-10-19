@@ -31,7 +31,7 @@ function claudeReplies(...titles: string[]) {
   const fetchMock = vi.fn(async () => {
     const title = titles[Math.min(i++, titles.length - 1)]
     return new Response(
-      JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ title, description: 'Описание', tags: ['#дом'] }) }] }),
+      JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ title, description: 'Описание', topics: ['дом'] }) }] }),
       { status: 200 },
     )
   })
@@ -158,4 +158,22 @@ test('a batch keeps its order after a reload, and settings do not drop the list'
   first.unmount()
 
   expect((await loadItems()).map((it) => it.file.name)).toEqual(names)
+})
+
+test('pin shows topics, and the copied text ends with the YouTube link', async () => {
+  setApiKey('sk-ant-test')
+  localStorage.setItem('pinbuddy.settings', JSON.stringify({ youtubeChannel: 'https://youtube.com/@me' }))
+  claudeReplies('Кофе')
+  const { container } = render(<App />)
+  await screen.findByText('Пока пусто')
+  pick(container, 'a.jpg')
+  fireEvent.click(await screen.findByText(/Кофе/))
+
+  expect(screen.getByText('дом')).toBeInTheDocument()
+  expect(screen.getByDisplayValue('https://youtube.com/@me')).toBeInTheDocument()
+
+  fireEvent.change(screen.getByDisplayValue('https://youtube.com/@me'), { target: { value: 'https://youtu.be/abc' } })
+  fireEvent.click(screen.getByRole('button', { name: /Скопировать/ }))
+  await screen.findByRole('button', { name: /Скопировано/ })
+  expect(writeText).toHaveBeenLastCalledWith('Кофе\n\nОписание\n\nhttps://youtu.be/abc')
 })

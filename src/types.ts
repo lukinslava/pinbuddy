@@ -7,7 +7,10 @@ export type GenerationStatus =
 export interface GeneratedCaption {
   title: string
   description: string
-  tags: string[]
+  /** Search phrases for Pinterest's hidden "related topics" field (no #). */
+  topics: string[]
+  /** Hashtags from captions generated before topics replaced them. */
+  tags?: string[]
 }
 
 export interface MediaItem {
@@ -19,5 +22,6 @@ export interface MediaItem {
   caption?: GeneratedCaption
   text: string                // the editable text that gets copied to Pinterest
   published: boolean          // marked as posted to Pinterest
+  link?: string               // YouTube URL for Pinterest's link field; falls back to the channel from settings
   createdAt: number
 }
